@@ -1,0 +1,5 @@
+python2 tiger index -i sample_data/test_alignment.aln -o output/test_alignment -u ?,-
+python2 tiger rate -i output/test_alignment.ref.ti -o output/test_alignment
+python2 tiger output -i output/test_alignment.gr -fa sample_data/test_alignment.aln -exc 1,2,9,10 -b 10 --mask -o output/test_alignment_sites_masked
+python2 tiger output -i output/test_alignment.gr -fa sample_data/test_alignment.aln -exc 1,2,9,10 -b 10 -o output/test_alignment_sites_removed
+python2 tiger output -i output/test_alignment.gr -fa sample_data/test_alignment.aln -exc 1,2,9,10 -b 10 -f 5 -o output/test_alignment_sites_masked_nexus
