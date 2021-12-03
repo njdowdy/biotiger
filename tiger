@@ -1,16 +1,18 @@
 #!/usr/bin/python
 
-import sys, os
+import os
+import sys
+import argparse
+
 sys.path.append(os.path.realpath('../modules'))
 sys.path.append(os.path.realpath('./modules'))
 
-import argparse
 
-def parse_args(args):
-    mode = args.pop(0)
+def parse_args(args_in):
+    mode_in = args_in.pop(0)
     parser = argparse.ArgumentParser()
 
-    if mode == 'rate':
+    if mode_in == 'rate':
         parser.add_argument('-i', '--input')
         parser.add_argument('-r', '--reference')
         parser.add_argument('-o', '--output')
@@ -19,14 +21,12 @@ def parse_args(args):
         # parser.add_argument('-z', '--randomisations')
         # parser.add_argument('-p', '--p_value', default=0.05)
         # parser.add_argument('-pl', '--pval_list')
-
-    elif mode == 'index':
+    elif mode_in == 'index':
         parser.add_argument('-i', '--input')
         parser.add_argument('-s', '--split')
         parser.add_argument('-o', '--output')
         parser.add_argument('-u', '--unknowns', default='?')
-
-    elif mode == 'output':
+    elif mode_in == 'output':
         parser.add_argument('-i', '--input')
         parser.add_argument('-fa', '--fasta')
         parser.add_argument('-o', '--output')
@@ -36,13 +36,12 @@ def parse_args(args):
         parser.add_argument('-exc', '--exclude_only')
         parser.add_argument('-m', '--mask', dest='mask', action='store_true', default=False)
         parser.add_argument('-b', '--bins', default=10)
-        
-
     else:
-        die_with_message("'%s' is not a valid mode.\n\n" % mode);
+        die_with_message("'%s' is not a valid mode.\n\n" % mode_in)
 
-    opts = parser.parse_args(args)
-    return (mode, opts)
+    opts_in = parser.parse_args(args_in)
+    return mode_in, opts_in
+
 
 def die_with_help():
     print """
@@ -158,26 +157,30 @@ ipython: https://ipython.org/
      """
     sys.exit(1)
 
+
 def die_with_message(message):
-	print message
-	sys.exit(1)
+    print message
+    sys.exit(1)
 
 
-## MAIN ##
+# MAIN #
 if len(sys.argv) < 2:
-	die_with_help()
+    die_with_help()
 
 args = sys.argv[1:]
 (mode, opts) = parse_args(args)
 
 if mode == 'index':
     from biotiger import index
+
     index.run(opts)
 elif mode == 'rate':
     from biotiger import rate
+
     rate.run(opts)
 elif mode == 'output':
     from biotiger import output
+
     output.run(opts)
 
 # Options not yet implemented!!
@@ -201,6 +204,3 @@ elif mode == 'output':
 
 #                         Default is <input_file_prefix>.pval
 # """
-
-
-

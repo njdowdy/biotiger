@@ -1,142 +1,156 @@
 #!/usr/bin/env python
 
-import re, sys, cPickle, os, math
+import cPickle
+import math
+import os
+import re
+import sys
+
 
 def check_opts(opts):
-	if opts.input is None:
-		die_with_help()
-	if not file_exists(opts.input):
-		die_with_message("Cannot find file '%s'" % opts.input)
-	if opts.unknowns is not None:
-		if len(opts.unknowns) < 1:
-			die_with_message("Invalid -u option.")
-	if opts.split is not None:
-		try:
-			int(opts.split)
-		except ValueError:
-			die_with_message("Please provide an integer value for --split option")
+    if opts.input is None:
+        die_with_help()
+    if not file_exists(opts.input):
+        die_with_message("Cannot find file '%s'" % opts.input)
+    if opts.unknowns is not None:
+        if len(opts.unknowns) < 1:
+            die_with_message("Invalid -u option.")
+    if opts.split is not None:
+        try:
+            int(opts.split)
+        except ValueError:
+            die_with_message("Please provide an integer value for --split option")
+
 
 def file_exists(f):
-	return os.path.exists(os.path.realpath(f))
+    return os.path.exists(os.path.realpath(f))
+
 
 def check_aln(seqs):
-	base = len(seqs[0])
-	for s in seqs:
-		if len(s) != base:
-			die_with_message("Sequences are not of even lengths. Please ensure the data is aligned.")
-	return base
+    base = len(seqs[0])
+    for s in seqs:
+        if len(s) != base:
+            die_with_message("Sequences are not of even lengths. Please ensure the data is aligned.")
+    return base
 
-def parse_fasta(input):
-	data = []
-	fa_str = "\n".join(open(input).readlines())
-	parts = fa_str.split(">")
-	parts = parts[1:]
 
-	for p in parts:
-		spl = p.split("\n")
-		name = spl.pop(0)
-		seq = ""
-		for s in spl:
-			if re.search("\w", s):
-				seq += s.rstrip()
-		data.append([name, seq])
+def parse_fasta(input_in):
+    data = []
+    fa_str = "\n".join(open(input_in).readlines())
+    parts = fa_str.split(">")
+    parts = parts[1:]
 
-	return data
+    for p in parts:
+        spl = p.split("\n")
+        name = spl.pop(0)
+        seq = ""
+        for s in spl:
+            if re.search("\w", s):
+                seq += s.rstrip()
+        data.append([name, seq])
+
+    return data
+
 
 def patterns(data):
-	seqs = [i[1] for i in data]
+    seqs = [i[1] for i in data]
 
-	l = len(seqs[0])
-	sites = []
-	for x in range(l):
-		s = [y[x] for y in seqs]
-		sites.append(s)
+    length = len(seqs[0])
+    sites = []
+    for x in range(length):
+        s = [y[x] for y in seqs]
+        sites.append(s)
 
-	return [site_pattern(s) for s in sites]
+    return [site_pattern(s) for s in sites]
+
 
 def site_pattern(site):
-	pat = {}
-	order = []
-	for i, base in enumerate(site):
-		try:
-			pat[base].append(i)
-		except KeyError:
-			pat[base] = [i]
-			order.append(base)
+    pat = {}
+    order = []
+    for i, base in enumerate(site):
+        try:
+            pat[base].append(i)
+        except KeyError:
+            pat[base] = [i]
+            order.append(base)
 
-	return "|".join( [",".join([str(x) for x in pat[o]]) for o in order ])
+    return "|".join([",".join([str(x) for x in pat[o]]) for o in order])
+
 
 def pattern_counts_sets(pats):
-	uniq = {}
-	for x, p in enumerate(pats):
-		try:
-			uniq[p]["count"] += 1
-		except KeyError:
-			uniq[p] = {"count": 1}
+    uniq = {}
+    for x, p in enumerate(pats):
+        try:
+            uniq[p]["count"] += 1
+        except KeyError:
+            uniq[p] = {"count": 1}
 
-		try:
-			uniq[p]["sites"].append(x)
-		except KeyError:
-			uniq[p]["sites"] = [x]
+        try:
+            uniq[p]["sites"].append(x)
+        except KeyError:
+            uniq[p]["sites"] = [x]
 
+    return uniq
 
-	return uniq
 
 def run(opts):
-	check_opts(opts)
-	seq_data = parse_fasta(opts.input)
-	seq_len = check_aln(seq_data)
-	pats = patterns(seq_data)
+    check_opts(opts)
+    seq_data = parse_fasta(opts.input)
+    # seq_len = check_aln(seq_data)  # seq_len not used
+    pats = patterns(seq_data)
 
-	uniq_pats = pattern_counts_sets(pats)
+    uniq_pats = pattern_counts_sets(pats)
 
-	prefix = opts.output
-	if opts.output is None:
-		prefix = gen_prefix(opts.input)
-	out = "%s.ref.ti" % prefix
-	with open(out, 'wb') as fh:
-		#cPickle.dump(seq_data, fh)
-		cPickle.dump(uniq_pats, fh)
-	
-	if opts.split is not None:
-		write_subsets(uniq_pats, int(opts.split), prefix)
-		
+    prefix = opts.output
+    if opts.output is None:
+        prefix = gen_prefix(opts.input)
+    out = "%s.ref.ti" % prefix
+    with open(out, 'wb') as fh:
+        # cPickle.dump(seq_data, fh)
+        cPickle.dump(uniq_pats, fh)
+
+    if opts.split is not None:
+        write_subsets(uniq_pats, int(opts.split), prefix)
+
+
 def write_subsets(pats, num, prefix):
-	step = math.ceil(float(len(pats))/num)
-	c = 1
-	subs = []
+    step = math.ceil(float(len(pats)) / num)
+    # c = 1  # c not used
+    subs = []
 
-	pat_keys = pats.keys()
-	while len(pat_keys) > 0:
-		subs.append({})
+    pat_keys = pats.keys()
+    while len(pat_keys) > 0:
+        subs.append({})
 
-		for x in range(int(step)):
-			try:
-				pat = pat_keys.pop()
-				subs[-1][pat] = pats[pat]
-				if len(pat_keys) < step:
-					pat = pat_keys.pop()
-					subs[-1][pat] = pats[pat]
-			except IndexError:
-				break
+        for x in range(int(step)):
+            try:
+                pat = pat_keys.pop()
+                subs[-1][pat] = pats[pat]
+                if len(pat_keys) < step:
+                    pat = pat_keys.pop()
+                    subs[-1][pat] = pats[pat]
+            except IndexError:
+                break
 
-	for i in range(len(subs)):
-		with open("%s.%d.ti" % (prefix, i), 'wb') as fh:
-			cPickle.dump(subs[i], fh)
+    for i in range(len(subs)):
+        with open("%s.%d.ti" % (prefix, i), 'wb') as fh:
+            cPickle.dump(subs[i], fh)
 
-def gen_prefix(input):
-	if "/" in input:
-		spl = input.split('/')
-		i = spl.pop()
-	else:
-		i = input
 
-	if '.' in i:
-		spl = i.split('.')
-		o = spl.pop(0)
-	else:
-		o = i
-	return o
+def gen_prefix(input_in):
+    if "/" in input_in:
+        spl = input_in.split('/')
+        i = spl.pop()
+    else:
+        i = input_in
+
+    if '.' in i:
+        spl = i.split('.')
+        o = spl.pop(0)
+    else:
+        o = i
+    return o
+
 
 def die_with_help():
     print """
@@ -172,7 +186,7 @@ tiger index Options:
      """
     sys.exit(1)
 
+
 def die_with_message(message):
-	print message
-	sys.exit(1)
-	
+    print message
+    sys.exit(1)

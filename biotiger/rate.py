@@ -1,4 +1,7 @@
-import cPickle, sys, os, re
+import cPickle
+import os
+import sys
+
 
 def check_opts(opts):
     if opts.input is None:
@@ -44,25 +47,26 @@ def site_rate(a, ref_counts):
     pat_rates = []
     dividand = 0
 
-    patA = set_pattern(a)
+    pat_a = set_pattern(a)
 
     for p in ref_counts.keys():
-        sub = 0
-        if '|' in p:       # only score against non-constant sites
-            patB = set_pattern(p)
-            pr = 1.0 - score(patA, patB)
+        # sub = 0
+        if '|' in p:  # only score against non-constant sites
+            pat_b = set_pattern(p)
+            pr = 1.0 - score(pat_a, pat_b)
 
             reps = ref_counts[p]["count"]
             if a == p:
                 reps -= 1
-        
+
             for i in range(reps):
-                #print "%s v %s = %f" % (patA, p, pr)
+                # print "%s v %s = %f" % (pat_a, p, pr)
                 pat_rates.append(pr)
                 dividand += 1
 
-    #print "%f/%d = %f" % (sum(pat_rates), dividand, (sum(pat_rates)/dividand))
-    return 1.0 - (sum(pat_rates)/dividand)
+    # print "%f/%d = %f" % (sum(pat_rates), dividand, (sum(pat_rates)/dividand))
+    return 1.0 - (sum(pat_rates) / dividand)
+
 
 def score(a, b):
     found = 0
@@ -74,10 +78,12 @@ def score(a, b):
                 found += 1
                 break
 
-    return float(found)/sets
+    return float(found) / sets
+
 
 def set_pattern(p):
     return [set([int(y) for y in x.split(',')]) for x in p.split('|')]
+
 
 def sort(rates, patterns):
     if len(rates) != len(patterns):
@@ -90,7 +96,8 @@ def sort(rates, patterns):
 
     sort_order = sorted(rate_d, key=rate_d.get, reverse=True)
 
-    return [ [ rates[o] for o in sort_order ], [ patterns[p] for p in sort_order ] ]
+    return [[rates[o] for o in sort_order], [patterns[p] for p in sort_order]]
+
 
 def rate_list(pats):
     rates = {}
@@ -99,11 +106,11 @@ def rate_list(pats):
         for s in pats[k]['sites']:
             rates[s] = r
 
-    rate_list = []
-    for i in range(len(pats)+1):
-        rate_list.append(rates[i])
+    rate_list_store = []
+    for i in range(len(pats) + 1):
+        rate_list_store.append(rates[i])
 
-    return rate_list
+    return rate_list_store
 
 
 def run(opts):
@@ -136,7 +143,7 @@ def run(opts):
         else:
             rl = opts.rate_list
         rlh = open(rl, 'w')
-        rlh.write( "\n".join([str(x) for x in ratel]) )
+        rlh.write("\n".join([str(x) for x in ratel]))
         rlh.close()
 
     # do PTP test if required
@@ -144,12 +151,12 @@ def run(opts):
     #   continue
 
 
-def gen_prefix(input):
-    if "/" in input:
-        spl = input.split('/')
+def gen_prefix(input_in):
+    if "/" in input_in:
+        spl = input_in.split('/')
         i = spl.pop()
     else:
-        i = input
+        i = input_in
 
     if '.' in i:
         spl = i.split('.')
@@ -158,6 +165,7 @@ def gen_prefix(input):
     else:
         o = i
     return o
+
 
 def die_with_help():
     print """
@@ -203,9 +211,7 @@ tiger rate Options:
      """
     sys.exit(1)
 
+
 def die_with_message(message):
     print message
     sys.exit(1)
-
-
-
